@@ -127,11 +127,14 @@ def _get_current_node_ip() -> str:
                     break
     return local_ip
 
-def _init_dp_envs(tp_size):
+def _init_dp_envs(config):
     rank = torch.distributed.get_rank()
     #dp_size和config里的gen_tp一块使用，这里固定写死用于启vllm多实例，后期修正
-    dp_size = 2
-    all_ranks = torch.arange(256).reshape(-1, dp_size, 1, tp_size)  # noqa
+    world_size = int(os.getenv("WORLD_SIZE", "-1"))
+    tp_size = int(config.get("tensor_model_parallel_size", 1))
+    dp_size = int(config.get("dp_model_parallel_size", 1))
+
+    all_ranks = torch.arange(world_size).reshape(-1, dp_size, 1, tp_size)  # noqa
     group_ranks = all_ranks.transpose(1, 3).reshape(-1, dp_size).unbind(0)
     group_ranks = [x.tolist() for x in group_ranks]
     ip_list = get_cluster_info()
@@ -146,8 +149,7 @@ def _init_dp_envs(tp_size):
     envs.VLLM_DP_RANK = int(os.environ["VLLM_DP_RANK"])
     envs.VLLM_DP_MASTER_IP = os.environ["VLLM_DP_MASTER_IP"]
     envs.VLLM_DP_MASTER_PORT = int(os.environ["VLLM_DP_MASTER_PORT"])
-
-
+    print(f"VLLM using TP={tp_size}, DP={dp_size}",flush=True)
 
 
 # NOTE(sgm): add for verl. We can optimize it by making the dataloader yield List[int] without padding.
@@ -239,7 +241,7 @@ class vLLMRollout(BaseRollout):
         if config.get("limit_images", None):  # support for multi-image data
             engine_kwargs["limit_mm_per_prompt"] = {"image": config.get("limit_images")}
 
-        _init_dp_envs(tensor_parallel_size)
+        _init_dp_envs(config)
         self.inference_engine = LLM(
             model=model_path,
             enable_sleep_mode=True,

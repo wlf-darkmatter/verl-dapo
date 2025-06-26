@@ -14,7 +14,7 @@
 
 from verl.single_controller.base.worker import DistGlobalInfo, DistRankInfo, Worker
 from mindspeed import megatron_adaptor
-s
+
 class MegatronWorker(Worker):
     def __init__(self, cuda_visible_devices=None) -> None:
         super().__init__(cuda_visible_devices)

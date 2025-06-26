@@ -116,9 +116,9 @@ class DataParallelPPOActor(BasePPOActor):
                 else:
                     position_ids_rmpad = index_first_axis(rearrange(position_ids.unsqueeze(-1), "b s ... -> (b s) ..."), indices).transpose(0, 1)
 
-                if "multi_modal_inputs" in micro_batch:
+                if "multi_modal_inputs" in micro_batch.keys():
                     # MiniCPM-o specific processing for image bounds and pixel values
-                    if "image_bound" in multi_modal_inputs:
+                    if "image_bound" in multi_modal_inputs.keys():
                         # Adjust image bounds based on left padding and cumulative sequence lengths
                         # This is necessary for MiniCPM-o's vision-language alignment
                         left_padding_length = torch.argmax(attention_mask, dim=1)

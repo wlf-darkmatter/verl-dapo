@@ -129,6 +129,7 @@ def _get_current_node_ip() -> str:
 
 def _init_dp_envs(tp_size):
     rank = torch.distributed.get_rank()
+    #dp_size和config里的gen_tp一块使用，这里固定写死用于启vllm多实例，后期修正
     dp_size = 2
     all_ranks = torch.arange(256).reshape(-1, dp_size, 1, tp_size)  # noqa
     group_ranks = all_ranks.transpose(1, 3).reshape(-1, dp_size).unbind(0)
@@ -248,7 +249,7 @@ class vLLMRollout(BaseRollout):
             enforce_eager=config.enforce_eager,
             gpu_memory_utilization=config.gpu_memory_utilization,
             disable_custom_all_reduce=True,
-            disable_mm_preprocessor_cache=False,
+            # disable_mm_preprocessor_cache=False,
             skip_tokenizer_init=False,
             max_model_len=max_model_len,
             load_format='safetensors',

@@ -417,7 +417,9 @@ class MegatronPPOActor(BasePPOActor):
             batch = next(batch_iter)
             input_ids = batch["input_ids"]
             attention_mask = batch["attention_mask"].to(bool)
-            position_ids = batch["position_ids"]
+            # position_ids = batch["position_ids"]
+            position_ids = batch["position_ids"].clone()
+
 
             multi_modal_inputs = {}
             if "multi_modal_inputs" in batch:

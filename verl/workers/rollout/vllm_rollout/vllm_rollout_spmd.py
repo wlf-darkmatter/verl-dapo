@@ -149,7 +149,8 @@ def _init_dp_envs(config):
     envs.VLLM_DP_RANK = int(os.environ["VLLM_DP_RANK"])
     envs.VLLM_DP_MASTER_IP = os.environ["VLLM_DP_MASTER_IP"]
     envs.VLLM_DP_MASTER_PORT = int(os.environ["VLLM_DP_MASTER_PORT"])
-    print(f"VLLM using TP={tp_size}, DP={dp_size}",flush=True)
+
+    print(f"[VLLM] using TP={tp_size}, DP={dp_size}", flush=True)
 
 
 # NOTE(sgm): add for verl. We can optimize it by making the dataloader yield List[int] without padding.
@@ -379,12 +380,26 @@ class vLLMRollout(BaseRollout):
 
         # users can customize different sampling_params at different run
         with self.update_sampling_params(**kwargs):
+            self.sampling_params.detokenize = True
             outputs = self.inference_engine.generate(
                 prompts=vllm_inputs,  # because we have already convert it to prompt token id
                 sampling_params=self.sampling_params,
                 lora_request=lora_requests,
                 use_tqdm=False,
             )
+
+            try:
+                rank = torch.distributed.get_rank()
+                if rank == 0:
+                    for output in outputs:
+                        for sample_id in range(len(output.outputs)):
+                            response_text = output.outputs[sample_id].text
+                            print(f"===>Output===>", flush=True)
+                            print(response_text)
+                            print(f"<===END, 生成结束原因: {output.outputs[sample_id].finish_reason}", flush=True)
+                            
+            except Exception as e:
+                print(f"Print generation failed! \nreason is {e.__repr__()}")
 
             # TODO(sgm): disable logprob when recompute_log_prob is enable
             # if n = 1: (bs, response_length) ; if n > 1: (bs * n, response_length)

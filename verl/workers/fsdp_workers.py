@@ -669,6 +669,15 @@ class ActorRolloutRefWorker(Worker, DistProfilerExtension):
             output = self.rollout_sharding_manager.postprocess_data(output)
 
         timing_generate.update(self.rollout_sharding_manager.timing)
+
+        #* 检查可能存在的多 DP 推理长短问题导致的超时现象
+        str_timing = ", ".join([f"{k} = {v:>8.1f} s" for k, v in timing_generate.items()])
+        str_rank = f"rank = {self.rank:>3d}, device_id = {get_device_id():>3d}"
+        output_length_record = output.batch['attention_mask'].sum(1).to("cpu").tolist()
+        output_length_record = output.batch['prompts'].sum(1).to("cpu").tolist()
+        str_res_length = f"\nResponse: {output_length_record}"
+        print(str_rank, str_timing, str_res_length, flush=True)
+
         # We calculate the average timing across all ranks
         # to make sure meta_info["timing"] is the same
         timing_generate = reduce_timing(timing_generate)

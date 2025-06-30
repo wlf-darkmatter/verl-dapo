@@ -18,6 +18,22 @@ from megatron.core import parallel_state as mpu
 from megatron.core.packed_seq_params import PackedSeqParams
 
 
+def compute_qkv_index(seq_lens):
+    full_indices = list(range(seq_lens[-1]))
+    prev_eod_pos = 0
+    kv_indices = []
+    q_indices = []
+    for eod_pos in seq_lens:
+        mid = (eod_pos + prev_eod_pos) // 2
+        kv_indices.extend(full_indices[prev_eod_pos:mid])
+        q_indices.extend(full_indices[mid:eod_pos])
+        prev_eod_pos = eod_pos
+
+    kv_index = torch.tensor(kv_indices).cuda(non_blocking=True)
+    q_index = torch.tensor(q_indices).cuda(non_blocking=True)
+
+    return q_index, kv_index
+
 def preprocess_packed_seqs(input_ids: torch.Tensor, attention_mask: torch.Tensor, pre_process: bool = True) -> tuple[torch.Tensor, PackedSeqParams]:
     """
     Preprocess packed sequences
@@ -62,7 +78,7 @@ def preprocess_packed_seqs(input_ids: torch.Tensor, attention_mask: torch.Tensor
             remain_len = remain_end - remain_start
             if remain_len > 0:
                 input_ids_rmpad[start_idx + half_seqlen : start_idx + half_seqlen + remain_len] = d[remain_start:remain_end]
-
+    cu_seqlens_padded_div_cp = cu_seqlens_padded // cp_size
     packed_seq_params = PackedSeqParams(
         qkv_format="thd",
         cu_seqlens_q=cu_seqlens_padded,
@@ -72,6 +88,10 @@ def preprocess_packed_seqs(input_ids: torch.Tensor, attention_mask: torch.Tensor
         cu_seqlens_q_padded=cu_seqlens_padded,
         cu_seqlens_kv_padded=cu_seqlens_padded,
     )
+    q_index, kv_index = compute_qkv_index(cu_seqlens_padded_div_cp.clone().tolist())
+    packed_seq_params.q_index = q_index
+    packed_seq_params.kv_index = kv_index
+    packed_seq_params.cu_seqlens_padded_div_cp = cu_seqlens_padded_div_cp
     if pre_process:
         return input_ids_rmpad.unsqueeze(0), packed_seq_params
     else:

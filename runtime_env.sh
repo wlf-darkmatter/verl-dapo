@@ -1,0 +1,10 @@
+export HCCL_SOCKET_IFNAME="eth0"
+export TP_SOCKET_IFNAME="eth0"
+export GLOO_SOCKET_IFNAME="eth0"
+export HCCL_EXEC_TIMEOUT=3600
+export HCCL_CONNECT_TIMEOUT=3600
+export VLLM_USE_V1=1
+export VLLM_VERSION=0.9.1
+export HCCL_IF_BASE_PORT=62899
+#WORLD_SIZE= nnodes * n_gpus_per_node
+export WORLD_SIZE=512

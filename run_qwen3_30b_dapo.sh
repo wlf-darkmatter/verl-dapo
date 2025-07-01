@@ -20,16 +20,19 @@ clip_ratio_low=0.2
 clip_ratio_high=0.28
 
 enable_filter_groups=True
+
 max_num_gen_batches=32
 filter_groups_metric=acc
 max_prompt_length=$((2048 * 1))
 max_response_length=$((2048 * 1))
+
 
 enable_overlong_buffer=True
 overlong_buffer_len=$((1024 * 1))
 overlong_penalty_factor=0.1
 
 loss_agg_mode="token-mean"
+
 
 train_prompt_bsz=32 # must be > n_gpus. need to fix
 n_resp_per_prompt=4

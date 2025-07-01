@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 project_name='DAPO'
-exp_name='DAPO-Early-Qwen3-MOE-30B'
+exp_name='DAPO-Qwen3-MOE-30B-FSDP'
 
 NNODES=1
 
@@ -45,14 +45,9 @@ ppo_micro_batch_size_per_gpu=2
 RAY_ADDRESS='http://localhost:8265'
 RUNTIME_ENV=verl/trainer/ant_runtime_env.yaml
 
-
-#MODEL_PATH=${MODEL_PATH:-"${RAY_DATA_HOME}/models/Qwen2.5-32B"}
-MODEL_PATH="/sfs_turbo/pretrained_models/Qwen3-30B-A3B"
-# export MODEL_PATH=/sfs_turbo/dxy/pretrained_models/Qwen/Qwen3-235B-A22B
-
-
-TRAIN_FILE=/sfs_turbo/wlf/VerlCode/dataset/dapo-math/dapo-math-17k-update.parquet
-TEST_FILE=/sfs_turbo/wlf/VerlCode/dataset/dapo-math/test.parquet
+MODEL_PATH=""
+TRAIN_FILE=""
+TEST_FILE=""
 
 # Algorithm
 temperature=1.0
@@ -72,6 +67,7 @@ gen_dp=4
 
 ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     -- python3 -m recipe.dapo.main_dapo \
+    --config-name="dapo_trainer-fsdp" \
     data.train_files="${TRAIN_FILE}" \
     data.val_files="${TEST_FILE}" \
     data.prompt_key=prompt \
@@ -149,14 +145,14 @@ ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     trainer.save_freq=-1 \
     trainer.total_epochs=1 \
     trainer.device="npu" \
-    actor_rollout_ref.nccl_timeout=7200 \
+    +actor_rollout_ref.nccl_timeout=7200 \
     actor_rollout_ref.actor.use_torch_compile=False \
     actor_rollout_ref.ref.use_torch_compile=False  2>&1 | tee /tmp/ray.output
 
 ray_name=$(cat /tmp/ray.output | grep "submitted successfully" | awk '{print $2}')
 ray_name=${ray_name//\'}
 
-path_log_dir=../logs/$(date +"%Y-%m-%dTime%H:%M:%S")_H$NNODES
+path_log_dir=./logs/$(date +"%Y-%m-%dTime%H:%M:%S")_H$NNODES
 mkdir -p $path_log_dir
 echo "日志存放文件夹: $path_log_dir"
 cp $0 $path_log_dir/

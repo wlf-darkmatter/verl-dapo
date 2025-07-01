@@ -66,7 +66,7 @@ train_pp=4
 train_cp=2
 
 python3 -m recipe.dapo.main_dapo \
-    --config-name="ppo_megatron_trainer.yaml" \
+    --config-name="dapo_trainer-megatron" \
     data.train_files="${TRAIN_FILE}" \
     data.val_files="${TEST_FILE}" \
     data.prompt_key=prompt \

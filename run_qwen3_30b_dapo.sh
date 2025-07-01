@@ -7,7 +7,7 @@ set -xeuo pipefail
 # huggingface-cli download deepseek-ai/DeepSeek-V3-0324 configuration_deepseek.py config.json
 
 project_name='DAPO'
-exp_name='DAPO-qwen3-235b-megatron'
+exp_name='DAPO-qwen3-30b-megatron'
 
 adv_estimator=grpo
 
@@ -20,10 +20,10 @@ clip_ratio_low=0.2
 clip_ratio_high=0.28
 
 enable_filter_groups=True
-max_num_gen_batches=512
+max_num_gen_batches=32
 filter_groups_metric=acc
 max_prompt_length=$((2048 * 1))
-max_response_length=$((2048 * 10))
+max_response_length=$((2048 * 1))
 
 enable_overlong_buffer=True
 overlong_buffer_len=$((1024 * 1))
@@ -31,14 +31,14 @@ overlong_penalty_factor=0.1
 
 loss_agg_mode="token-mean"
 
-train_prompt_bsz=512 # must be > n_gpus. need to fix
+train_prompt_bsz=32 # must be > n_gpus. need to fix
 n_resp_per_prompt=4
 train_prompt_mini_bsz=32  # mini_bsz * n >= micro_bsz * pp * dp
 
-NNODES=${NNODES:-32}
+NNODES=${NNODES:-2}
 
-MODEL_PATH="/Qwen/Qwen3-235B-A22B"
-MCORE_MODEL_PATH="/mcore/Qwen3-235B-A22B"
+MODEL_PATH="/Qwen/Qwen3-30B"
+MCORE_MODEL_PATH="/mcore/Qwen3-30B"
 RAY_DATA_HOME=${RAY_DATA_HOME:-"${HOME}/verl"}
 CKPTS_DIR=${CKPTS_DIR:-"${RAY_DATA_HOME}/ckpts/${project_name}/${exp_name}"}
 TRAIN_FILE="dapo-math-17k.parquet"
@@ -56,11 +56,11 @@ actor_ppo_max_token_len=$(((max_prompt_length + max_response_length) * 2))
 infer_ppo_max_token_len=$(((max_prompt_length + max_response_length) * 3))
 offload=True
 gen_tp=2
-gen_dp=64
+gen_dp=8
 train_tp=4
-train_ep=8
-train_pp=16
-train_cp=8
+train_ep=1
+train_pp=4
+train_cp=2
 
 python3 -m recipe.dapo.main_dapo \
     --config-name="ppo_megatron_trainer.yaml" \

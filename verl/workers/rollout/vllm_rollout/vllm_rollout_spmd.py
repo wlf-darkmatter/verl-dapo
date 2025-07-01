@@ -129,9 +129,9 @@ def _get_current_node_ip() -> str:
 
 def _init_dp_envs(config):
     rank = torch.distributed.get_rank()
-    world_size = int(config.get("nnodes", 1)) * int(config.get("n_gpus_per_node", 1))
+    world_size = int(config.get("", 1))
     # world_size = int(os.getenv("WORLD_SIZE", "-1"))
-    tp_size = int(config.get("tensor_model_parallel_size", 1))
+    tp_size = int(config.get("rollout_world_size", 1))
     dp_size = int(config.get("dp_model_parallel_size", 1))
 
     all_ranks = torch.arange(world_size).reshape(-1, dp_size, 1, tp_size)  # noqa

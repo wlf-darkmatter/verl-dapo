@@ -64,6 +64,7 @@ infer_ppo_max_token_len=$((max_prompt_length + max_response_length))
 offload=True
 gen_tp=4
 gen_dp=4
+gen_world_size=16 # nnodes* npus_in_per_node
 
 ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     -- python3 -m recipe.dapo.main_dapo \
@@ -115,6 +116,7 @@ ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     actor_rollout_ref.rollout.gpu_memory_utilization=${KV_RATIO} \
     actor_rollout_ref.rollout.tensor_model_parallel_size=${gen_tp} \
     +actor_rollout_ref.rollout.dp_model_parallel_size=${gen_dp} \
+    +actor_rollout_ref.rollout.rollout_world_size=${gen_world_size} \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=${ppo_micro_batch_size_per_gpu} \
     actor_rollout_ref.rollout.enable_chunked_prefill=True \
     actor_rollout_ref.rollout.max_num_batched_tokens=$((max_prompt_length + max_response_length)) \

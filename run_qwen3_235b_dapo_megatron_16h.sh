@@ -58,6 +58,9 @@ infer_ppo_max_token_len=$(((max_prompt_length + max_response_length) * 3))
 offload=True
 gen_tp=2
 gen_dp=64
+gen_world_size=256 # nnodes* npus_in_per_node
+
+
 train_tp=4
 train_ep=8
 train_pp=8
@@ -112,6 +115,7 @@ ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.7 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=${gen_tp} \
     +actor_rollout_ref.rollout.dp_model_parallel_size=${gen_dp} \
+    +actor_rollout_ref.rollout.rollout_world_size=${gen_world_size} \
     actor_rollout_ref.rollout.enable_chunked_prefill=True \
     actor_rollout_ref.rollout.max_num_batched_tokens=$((max_prompt_length + max_response_length)) \
     actor_rollout_ref.rollout.temperature=${temperature} \

@@ -17,7 +17,7 @@ clip_ratio_low=0.2
 clip_ratio_high=0.28
 
 li=2
-lo=20
+lo=10
 
 max_prompt_length=$((1024 * li))
 max_response_length=$((1024 * lo))
@@ -62,9 +62,9 @@ use_dynamic_bsz=True
 actor_ppo_max_token_len=$((max_prompt_length + max_response_length))
 infer_ppo_max_token_len=$((max_prompt_length + max_response_length))
 offload=True
-gen_tp=4
+gen_tp=2
 gen_dp=4
-gen_world_size=16 # nnodes* npus_in_per_node
+gen_world_size=$((NNODES * 16)) # nnodes* npus_in_per_node
 
 ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     -- python3 -m recipe.dapo.main_dapo \

@@ -674,7 +674,6 @@ class ActorRolloutRefWorker(Worker, DistProfilerExtension):
         str_timing = ", ".join([f"{k} = {v:>8.1f} s" for k, v in timing_generate.items()])
         str_rank = f"rank = {self.rank:>3d}, device_id = {get_device_id():>3d}"
         output_length_record = output.batch['attention_mask'].sum(1).to("cpu").tolist()
-        output_length_record = output.batch['prompts'].sum(1).to("cpu").tolist()
         str_res_length = f"\nResponse: {output_length_record}"
         print(str_rank, str_timing, str_res_length, flush=True)
 

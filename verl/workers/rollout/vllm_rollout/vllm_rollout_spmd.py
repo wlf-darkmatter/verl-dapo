@@ -390,14 +390,16 @@ class vLLMRollout(BaseRollout):
 
             try:
                 rank = torch.distributed.get_rank()
-                if rank == 0:
+                if rank == 0: #* 只打印 rank0 的
                     for output in outputs:
-                        for sample_id in range(len(output.outputs)):
+                        #* 写死的，只打印 1 份
+                        print_n_gen = 1 # len(output.outputs)
+                        for sample_id in range(print_n_gen):
                             response_text = output.outputs[sample_id].text
                             print(f"===>Output===>", flush=True)
                             print(response_text)
                             print(f"<===END, 生成结束原因: {output.outputs[sample_id].finish_reason}", flush=True)
-                            
+
             except Exception as e:
                 print(f"Print generation failed! \nreason is {e.__repr__()}")
 

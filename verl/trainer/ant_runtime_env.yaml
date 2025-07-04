@@ -15,3 +15,4 @@ env_vars:
   # test
   HCCL_IF_BASE_PORT: "48891"
   # RAY_DEBUG_POST_MORTEM: "1"
+  HCCL_ASYNC_ERROR_HANDLING: "0" #! 规避可能的 watchdog 超时问题

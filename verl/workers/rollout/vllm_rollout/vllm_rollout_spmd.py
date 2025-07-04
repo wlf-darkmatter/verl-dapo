@@ -243,9 +243,11 @@ class vLLMRollout(BaseRollout):
             engine_kwargs["limit_mm_per_prompt"] = {"image": config.get("limit_images")}
 
         _init_dp_envs(config)
+        sleep_mode = self.config.get("sleep_mode", True)
+        print(f"Sleep Mode: {sleep_mode}", flush=True)
         self.inference_engine = LLM(
             model=model_path,
-            enable_sleep_mode=True,
+            enable_sleep_mode=sleep_mode,
             tensor_parallel_size=tensor_parallel_size,
             distributed_executor_backend="external_launcher",
             dtype=config.dtype,

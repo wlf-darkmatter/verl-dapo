@@ -222,6 +222,25 @@ class RayDAPOTrainer(RayPPOTrainer):
                             traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n
                             batch = batch[:traj_bsz]
 
+                    # Log rollout generations if enabled
+                    rollout_data_dir = self.config.trainer.get("rollout_data_dir", None)
+                    if rollout_data_dir:
+                        from pathlib import Path
+                        rollout_data_dir = Path(rollout_data_dir).absolute().__str__()
+                        with marked_timer("dump_rollout_generations", timing_raw):
+                            print(batch.batch.keys(), flush=True)
+                            inputs = self.tokenizer.batch_decode(batch.batch["prompts"], skip_special_tokens=True)
+                            outputs = self.tokenizer.batch_decode(batch.batch["responses"], skip_special_tokens=True)
+                            scores = batch.batch["token_level_scores"].sum(-1).cpu().tolist()
+                            self._dump_generations(
+                                inputs=inputs,
+                                outputs=outputs,
+                                scores=scores,
+                                reward_extra_infos_dict=reward_extra_infos_dict,
+                                dump_path=rollout_data_dir,
+                            )
+                            print(f"Dumped in {rollout_data_dir}", flush=True)
+
                     # === Updating ===
 
                     batch.batch["response_mask"] = compute_response_mask(batch)

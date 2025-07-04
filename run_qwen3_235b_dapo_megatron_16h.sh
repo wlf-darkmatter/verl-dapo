@@ -21,7 +21,7 @@ clip_ratio_low=0.2
 clip_ratio_high=0.28
 
 enable_filter_groups=True
-max_num_gen_batches=256
+max_num_gen_batches=10
 filter_groups_metric=acc
 max_prompt_length=$((2048 * 1))
 max_response_length=$((2048 * 10))
@@ -34,7 +34,7 @@ loss_agg_mode="token-mean"
 
 train_prompt_bsz=256 # must be > n_gpus. need to fix
 n_resp_per_prompt=4
-train_prompt_mini_bsz=32  # mini_bsz * n >= micro_bsz * pp * dp
+train_prompt_mini_bsz=16  # mini_bsz * n >= micro_bsz * pp * dp
 
 NNODES=${NNODES:-16}
 
@@ -60,13 +60,12 @@ gen_tp=2
 gen_dp=64
 gen_world_size=256 # nnodes* npus_in_per_node
 
-
 train_tp=4
 train_ep=8
 train_pp=8
 train_cp=8
 
-ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
+ray job submit --no-wait \
     -- python3 -m recipe.dapo.main_dapo \
     --config-name="dapo_trainer-megatron" \
     data.train_files="${TRAIN_FILE}" \
@@ -133,7 +132,6 @@ ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     actor_rollout_ref.ref.megatron.param_offload=${offload} \
     actor_rollout_ref.ref.megatron.dist_checkpointing_path=${MCORE_MODEL_PATH} \
     actor_rollout_ref.ref.megatron.use_dist_checkpointing=True \
-    actor_rollout_ref.nccl_timeout=7200 \
     +actor_rollout_ref.ref.entropy_from_logits_with_chunking=True \
     +actor_rollout_ref.actor.entropy_from_logits_with_chunking=True \
     +actor_rollout_ref.actor.entropy_checkpointing=True \

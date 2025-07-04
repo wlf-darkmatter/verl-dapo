@@ -393,11 +393,18 @@ class vLLMRollout(BaseRollout):
                 if rank == 0: #* 只打印 rank0 的
                     for output in outputs:
                         #* 写死的，只打印 1 份
+                        #* 只打印部分
                         print_n_gen = 1 # len(output.outputs)
                         for sample_id in range(print_n_gen):
                             response_text = output.outputs[sample_id].text
                             print(f"===>Output===>", flush=True)
-                            print(response_text)
+                            if len(response_text) <= 420:
+                                print(response_text, flush=True)
+                            else:
+                                print(response_text[:200], flush=True)
+                                print("\n...\n...\n...\n...\n...\n")
+                                print(response_text[-200:], flush=True)
+
                             print(f"<===END, 生成结束原因: {output.outputs[sample_id].finish_reason}", flush=True)
 
             except Exception as e:

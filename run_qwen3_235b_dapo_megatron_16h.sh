@@ -8,7 +8,7 @@ set -xeuo pipefail
 
 project_name='DAPO'
 exp_name='DAPO-qwen3-235b-megatron'
-RUNTIME_ENV=verl/trainer/ant_runtime_env.yaml
+RUNTIME_ENV=verl/trainer/all2allv_runtime_env.yaml
 
 adv_estimator=grpo
 
@@ -24,7 +24,7 @@ enable_filter_groups=True
 max_num_gen_batches=10
 filter_groups_metric=acc
 max_prompt_length=$((2048 * 1))
-max_response_length=$((2048 * 10))
+max_response_length=$((2048 * 6))
 
 enable_overlong_buffer=True
 overlong_buffer_len=$((1024 * 1))
@@ -33,6 +33,7 @@ overlong_penalty_factor=0.1
 loss_agg_mode="token-mean"
 
 train_prompt_bsz=256 # must be > n_gpus. need to fix
+gen_prompt_bsz=$((train_prompt_bsz * 2))
 n_resp_per_prompt=4
 train_prompt_mini_bsz=16  # mini_bsz * n >= micro_bsz * pp * dp
 
@@ -41,7 +42,7 @@ NNODES=${NNODES:-16}
 MODEL_PATH="/Qwen/Qwen3-235B-A22B"
 MCORE_MODEL_PATH="/mcore/Qwen3-235B-A22B"
 RAY_DATA_HOME=${RAY_DATA_HOME:-"${HOME}/verl"}
-CKPTS_DIR=${CKPTS_DIR:-"${RAY_DATA_HOME}/ckpts/${project_name}/${exp_name}"}
+CKPTS_DIR="./ckpt"
 TRAIN_FILE="dapo-math-17k.parquet"
 TEST_FILE="dapo-math-17k.parquet"
 
@@ -75,6 +76,7 @@ ray job submit --no-wait \
     data.max_prompt_length=${max_prompt_length} \
     data.max_response_length=${max_response_length} \
     data.train_batch_size=${train_prompt_bsz} \
+    data.gen_batch_size=${gen_prompt_bsz} \
     actor_rollout_ref.rollout.n=${n_resp_per_prompt} \
     algorithm.adv_estimator=${adv_estimator} \
     algorithm.use_kl_in_reward=${use_kl_in_reward} \
@@ -149,13 +151,13 @@ ray job submit --no-wait \
     trainer.nnodes="${NNODES}" \
     trainer.device=npu \
     trainer.val_before_train=False \
-    trainer.test_freq=5 \
+    trainer.test_freq=-1 \
     trainer.save_freq=-1 \
-    trainer.total_epochs=10 \
-    trainer.total_training_steps=10 \
+    trainer.total_epochs=1 \
+    trainer.total_training_steps=100 \
     trainer.default_local_dir="${CKPTS_DIR}" \
     trainer.resume_mode=auto \
-    trainer.log_val_generations=10 \
+    trainer.log_val_generations=-1 \
     actor_rollout_ref.nccl_timeout=7200 \
     +actor_rollout_ref.actor.megatron.override_transformer_config.use_flash_attn=True \
     ++actor_rollout_ref.ref.megatron.override_transformer_config.use_flash_attn=True $@

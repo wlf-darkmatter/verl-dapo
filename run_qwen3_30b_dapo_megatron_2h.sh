@@ -8,8 +8,7 @@ set -xeuo pipefail
 
 project_name='DAPO'
 exp_name='DAPO-qwen3-30b-megatron'
-RUNTIME_ENV=verl/trainer/ant_runtime_env.yaml
-
+RUNTIME_ENV=verl/trainer/all2allv_runtime_env.yaml
 
 adv_estimator=grpo
 
@@ -22,12 +21,10 @@ clip_ratio_low=0.2
 clip_ratio_high=0.28
 
 enable_filter_groups=True
-
-max_num_gen_batches=32
+max_num_gen_batches=10
 filter_groups_metric=acc
 max_prompt_length=$((2048 * 1))
-max_response_length=$((2048 * 1))
-
+max_response_length=$((2048 * 6))
 
 enable_overlong_buffer=True
 overlong_buffer_len=$((1024 * 1))
@@ -35,17 +32,17 @@ overlong_penalty_factor=0.1
 
 loss_agg_mode="token-mean"
 
-
 train_prompt_bsz=32 # must be > n_gpus. need to fix
+gen_prompt_bsz=$((train_prompt_bsz * 2))
 n_resp_per_prompt=4
-train_prompt_mini_bsz=32  # mini_bsz * n >= micro_bsz * pp * dp
+train_prompt_mini_bsz=4  # mini_bsz * n >= micro_bsz * pp * dp
 
-NNODES=${NNODES:-1}
+NNODES=${NNODES:-2}
 
 MODEL_PATH="/Qwen/Qwen3-30B"
 MCORE_MODEL_PATH="/mcore/Qwen3-30B"
 RAY_DATA_HOME=${RAY_DATA_HOME:-"${HOME}/verl"}
-CKPTS_DIR=${CKPTS_DIR:-"${RAY_DATA_HOME}/ckpts/${project_name}/${exp_name}"}
+CKPTS_DIR="./ckpt"
 TRAIN_FILE="dapo-math-17k.parquet"
 TEST_FILE="dapo-math-17k.parquet"
 
@@ -62,12 +59,11 @@ infer_ppo_max_token_len=$(((max_prompt_length + max_response_length) * 3))
 offload=True
 gen_tp=2
 gen_dp=8
-gen_world_size=16 # nnodes* npus_in_per_node
-
+gen_world_size=32 # nnodes* npus_in_per_node
 
 train_tp=4
-train_ep=1
-train_pp=2
+train_ep=2
+train_pp=4
 train_cp=2
 
 ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
@@ -80,6 +76,7 @@ ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     data.max_prompt_length=${max_prompt_length} \
     data.max_response_length=${max_response_length} \
     data.train_batch_size=${train_prompt_bsz} \
+    data.gen_batch_size=${gen_prompt_bsz} \
     actor_rollout_ref.rollout.n=${n_resp_per_prompt} \
     algorithm.adv_estimator=${adv_estimator} \
     algorithm.use_kl_in_reward=${use_kl_in_reward} \
@@ -135,7 +132,6 @@ ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     actor_rollout_ref.ref.megatron.param_offload=${offload} \
     actor_rollout_ref.ref.megatron.dist_checkpointing_path=${MCORE_MODEL_PATH} \
     actor_rollout_ref.ref.megatron.use_dist_checkpointing=True \
-    actor_rollout_ref.nccl_timeout=7200 \
     +actor_rollout_ref.ref.entropy_from_logits_with_chunking=True \
     +actor_rollout_ref.actor.entropy_from_logits_with_chunking=True \
     +actor_rollout_ref.actor.entropy_checkpointing=True \
@@ -153,13 +149,13 @@ ray job submit --no-wait --runtime-env="${RUNTIME_ENV}" \
     trainer.nnodes="${NNODES}" \
     trainer.device=npu \
     trainer.val_before_train=False \
-    trainer.test_freq=5 \
+    trainer.test_freq=-1 \
     trainer.save_freq=-1 \
-    trainer.total_epochs=10 \
-    trainer.total_training_steps=10 \
+    trainer.total_epochs=1 \
+    trainer.total_training_steps=100 \
     trainer.default_local_dir="${CKPTS_DIR}" \
     trainer.resume_mode=auto \
-    trainer.log_val_generations=10 \
+    trainer.log_val_generations=-1 \
     actor_rollout_ref.nccl_timeout=7200 \
     +actor_rollout_ref.actor.megatron.override_transformer_config.use_flash_attn=True \
     ++actor_rollout_ref.ref.megatron.override_transformer_config.use_flash_attn=True $@

@@ -123,7 +123,7 @@ parser.add_argument("--max_num_batched_tokens", type=int, default=16 * 1024)
 parser.add_argument("--max_num_seqs", type=int, default=1024)
 parser.add_argument("--max_prompt_length", type=int, default=1024)
 parser.add_argument("--max_response_length", type=int, default=1024)
-parser.add_argument("--min_response_length", type=int, default=10)
+parser.add_argument("--min_response_length", type=int, default=None)
 
 parser.add_argument("--gpu_memory_utilization", type=float, default=0.5)
 
@@ -309,10 +309,12 @@ class Vllm_Worker(Worker):
             top_p=top_p,
             top_k=top_k,  # -1 for vllm rollout
             max_tokens=max_response_length,
-            min_tokens=min_response_length,
             logprobs=1,
-            ignore_eos=True,
         )
+        if args.min_response_length is not None:
+            kwargs["min_tokens"] = args.min_response_length
+            # kwargs['ignore_eos'] = True
+
         self.sampling_params = SamplingParams(**kwargs)
         self.sampling_params.detokenize = True
 
